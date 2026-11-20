@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SPIKE Prime Control — Brazo & Línea</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --card-2: #0b1220;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-2: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --border: #334155;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 16px;
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .badge.retrying {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fcd34d;
+      border-color: rgba(245, 158, 11, 0.45);
+    }
+
+    .badge.connected {
+      background: rgba(34, 197, 94, 0.15);
+      color: #86efac;
+      border-color: rgba(34, 197, 94, 0.4);
+    }
+
+    button {
+      background: var(--accent);
+      color: #082f49;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.06s ease, opacity 0.15s ease;
+    }
+
+    button:active { transform: scale(0.98); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: #334155;
+      color: var(--text);
+    }
+
+    .btn-green {
+      background: var(--accent-2);
+      color: #052e16;
+    }
+
+    .btn-warn {
+      background: var(--warn);
+      color: #451a03;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    .card h2 {
+      margin: 0 0 12px 0;
+      font-size: 1rem;
+      color: var(--accent);
+    }
+
+    .dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .dpad button {
+      padding: 14px 8px;
+      font-size: 0.95rem;
+    }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .readout-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .readout-box {
+      background: var(--card-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+
+    .readout-title {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .readout-num {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .dist-box {
+      background: var(--card-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .dist-val {
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+
+    .range-pill {
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .range-ok {
+      background: rgba(34, 197, 94, 0.16);
+      color: #86efac;
+      border: 1px solid rgba(34, 197, 94, 0.45);
+    }
+
+    .range-out {
+      background: rgba(245, 158, 11, 0.16);
+      color: #fcd34d;
+      border: 1px solid rgba(245, 158, 11, 0.45);
+    }
+
+    .control-group {
+      margin-bottom: 14px;
+    }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+      color: var(--muted);
+    }
+
+    input[type="range"] {
+      width: 100%;
+    }
+
+    .angle-step {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .angle-num {
+      font-size: 1.3rem;
+      font-weight: 800;
+      min-width: 84px;
+      text-align: center;
+    }
+
+    .presets {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .presets button {
+      padding: 8px 4px;
+      font-size: 0.8rem;
+    }
+
+    .diag-line {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>SPIKE Prime — Chasis, Brazo & Línea</h1>
+      <div class="status-row">
+        <span id="statusBadge" class="badge">Desconectado</span>
+        <button id="connectBtn">Conectar hub</button>
+        <button id="disconnectBtn" class="btn-secondary" disabled>Desconectar</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Conducción y Seguidor de Línea</h2>
+        <div class="dpad">
+          <button data-hold="I">↖ Suave I</button>
+          <button data-hold="F">▲ Adelante</button>
+          <button data-hold="D">↗ Suave D</button>
+
+          <button data-hold="L">◄ Izq</button>
+          <button id="stopBtn" class="btn-danger">■ Frenar</button>
+          <button data-hold="R">► Der</button>
+
+          <button data-hold="G">↙ Atrás I</button>
+          <button data-hold="B">▼ Atrás</button>
+          <button data-hold="H">↘ Atrás D</button>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Velocidad Carrito (Manual)</span>
+            <strong id="manualSpeedVal">500</strong>
+          </div>
+          <input id="manualSpeedSlider" type="range" min="120" max="900" step="20" value="500" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Velocidad Seguidor (Automático — Paso lento por defecto)</span>
+            <strong id="autoSpeedVal">110</strong>
+          </div>
+          <input id="autoSpeedSlider" type="range" min="40" max="400" step="10" value="110" />
+        </div>
+
+        <button id="followLineBtn" class="btn-warn" style="width:100%;padding:12px;">
+          ▶ Seguir línea hasta ambos en negro (M)
+        </button>
+      </section>
+
+      <section class="card">
+        <h2>Distancia, Ángulo y Disparo</h2>
+
+        <div class="readout-grid">
+          <div class="readout-box">
+            <div class="readout-title">Velocidad Disparo</div>
+            <div id="screenSpeed" class="readout-num">1000</div>
+          </div>
+          <div class="readout-box">
+            <div class="readout-title">Ángulo Brazo (0°–150°)</div>
+            <div id="screenAngle" class="readout-num">65°</div>
+          </div>
+        </div>
+
+        <div class="dist-box">
+          <div>
+            <div style="font-size:0.8rem;color:var(--muted);">Distancia Ultrasónica</div>
+            <div id="distText" class="dist-val">-- cm</div>
+          </div>
+          <div id="rangeStatus" class="range-pill range-out">
+            Sin lectura<br/>Rango: 30 cm – 179 cm
+          </div>
+        </div>
+
+        <div class="row-2" style="margin-bottom:14px;">
+          <button id="aimBtn" class="btn-secondary">Ajustar ángulo (A)</button>
+          <button id="autoShootBtn" class="btn-green">Ajustar y disparar (K)</button>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Velocidad de Disparo</span>
+            <strong id="speedVal">1000</strong>
+          </div>
+          <input id="speedSlider" type="range" min="500" max="1000" step="100" value="1000" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Ajuste de Ángulo (1° en 1°)</span>
+            <span>0° – 150°</span>
+          </div>
+          <div class="angle-step">
+            <button id="angleMinus" class="btn-secondary">-1°</button>
+            <div id="angleVal" class="angle-num">65°</div>
+            <button id="anglePlus" class="btn-secondary">+1°</button>
+          </div>
+          <input id="angleSlider" type="range" min="0" max="150" step="1" value="65" style="margin-top:8px;" />
+
+          <div class="presets">
+            <button class="btn-secondary" data-deg="65">65°</button>
+            <button class="btn-secondary" data-deg="80">80°</button>
+            <button class="btn-secondary" data-deg="95">95°</button>
+            <button class="btn-secondary" data-deg="110">110°</button>
+            <button class="btn-secondary" data-deg="130">130°</button>
+            <button class="btn-secondary" data-deg="150">150°</button>
+          </div>
+          <div id="diagAngle" class="diag-line">Enviado: -- | Hub: --</div>
+        </div>
+
+        <button id="shootBtn" class="btn-green" style="width:100%;padding:12px;">
+          ⚡ Disparar Brazo (S)
+        </button>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const SERVICE_UUID = "c5f50001-8280-46da-89f4-6d8051e4aeef";
+    const CHAR_UUID    = "c5f50002-8280-46da-89f4-6d8051e4aeef";
+
+    const DIST_MIN_MM = 300;  // 30 cm
+    const DIST_MAX_MM = 1790; // 179 cm
+    const ANG_MIN = 0;
+    const ANG_MAX = 150;
+
+    const statusBadge = document.getElementById("statusBadge");
+    const connectBtn = document.getElementById("connectBtn");
+    const disconnectBtn = document.getElementById("disconnectBtn");
+    const distText = document.getElementById("distText");
+    const rangeStatus = document.getElementById("rangeStatus");
+    const angleVal = document.getElementById("angleVal");
+    const angleSlider = document.getElementById("angleSlider");
+    const speedSlider = document.getElementById("speedSlider");
+    const speedVal = document.getElementById("speedVal");
+    const screenSpeed = document.getElementById("screenSpeed");
+    const screenAngle = document.getElementById("screenAngle");
+    const manualSpeedSlider = document.getElementById("manualSpeedSlider");
+    const manualSpeedVal = document.getElementById("manualSpeedVal");
+    const autoSpeedSlider = document.getElementById("autoSpeedSlider");
+    const autoSpeedVal = document.getElementById("autoSpeedVal");
+    const diagAngle = document.getElementById("diagAngle");
+
+    let ch = null;
+    let holdCmd = null;
+    let holdTimer = null;
+    let corriendo = null;
+    let currentDeg = 65;
+    let lastSentLabel = "--";
+    let lastHubDeg = "--";
+    let currentSpeed = 1000;
+    let manualSpeed = 500;
+    let autoSpeed = 110;
+    let bufferRecepcion = "";
+    let manualDisconnect = false;
+    let writeQueue = Promise.resolve();
+
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+
+    function actualizarPantallas() {
+      angleVal.textContent = `${currentDeg}°`;
+      angleSlider.value = currentDeg;
+      screenAngle.textContent = `${currentDeg}°`;
+
+      speedVal.textContent = currentSpeed;
+      speedSlider.value = currentSpeed;
+      screenSpeed.textContent = `${currentSpeed}`;
+
+      manualSpeedVal.textContent = manualSpeed;
+      manualSpeedSlider.value = manualSpeed;
+
+      autoSpeedVal.textContent = autoSpeed;
+      autoSpeedSlider.value = autoSpeed;
+
+      diagAngle.textContent = `Enviado: ${lastSentLabel} | Hub: ${lastHubDeg}`;
+    }
+
+    function actualizarDistanciaUI(mm) {
+      if (mm < 0) {
+        distText.textContent = "Sin eco";
+        rangeStatus.className = "range-pill range-out";
+        rangeStatus.innerHTML = "FUERA DE RANGO<br/>(30 cm – 179 cm)";
+        return;
+      }
+
+      const cm = (mm / 10).toFixed(1);
+      distText.textContent = `${cm} cm`;
+
+      const enRango = mm >= DIST_MIN_MM && mm <= DIST_MAX_MM;
+      if (enRango) {
+        rangeStatus.className = "range-pill range-ok";
+        rangeStatus.innerHTML = "EN RANGO<br/>(30 cm – 179 cm)";
+      } else {
+        rangeStatus.className = "range-pill range-out";
+        rangeStatus.innerHTML = "FUERA DE RANGO<br/>(30 cm – 179 cm)";
+      }
+    }
+
+    function setBadge(state, text) {
+      statusBadge.textContent = text;
+      statusBadge.classList.remove("connected", "retrying");
+      if (state === "connected") statusBadge.classList.add("connected");
+      if (state === "retrying") statusBadge.classList.add("retrying");
+    }
+
+    function setConnectedState(connected) {
+      connectBtn.disabled = connected;
+      disconnectBtn.disabled = !connected;
+      if (!connected) {
+        setBadge("disconnected", "Desconectado");
+        distText.textContent = "-- cm";
+        rangeStatus.className = "range-pill range-out";
+        rangeStatus.innerHTML = "Sin lectura<br/>Rango: 30 cm – 179 cm";
+      }
+    }
+
+    function procesarLecturaSerial(texto) {
+      bufferRecepcion += texto;
+      const lineas = bufferRecepcion.split("\n");
+      bufferRecepcion = lineas.pop();
+
+      for (let linea of lineas) {
+        linea = linea.trim();
+        if (linea.startsWith("D:")) {
+          const mm = parseInt(linea.substring(2), 10);
+          if (!isNaN(mm)) {
+            actualizarDistanciaUI(mm);
+          }
+        } else if (linea.startsWith("A:")) {
+          const deg = parseInt(linea.substring(2), 10);
+          if (!isNaN(deg) && deg >= ANG_MIN && deg <= ANG_MAX) {
+            currentDeg = deg;
+            lastHubDeg = `${deg}°`;
+            actualizarPantallas();
+          }
+        }
+      }
+    }
+
+    function enviarBytes2(cmdChar, valByte, pausaMs = 30) {
+      if (!ch) return Promise.resolve();
+      writeQueue = writeQueue.then(async () => {
+        if (!ch) return;
+        try {
+          const data = new Uint8Array([0x06, cmdChar.charCodeAt(0), valByte & 0xFF]);
+          await ch.writeValueWithResponse(data);
+          if (pausaMs > 0) await esperar(pausaMs);
+        } catch (err) {
+          console.log(err);
+        }
+      });
+      return writeQueue;
+    }
+
+    function enviarTexto(cmdTexto, pausaMs = 30) {
+      if (!ch) return Promise.resolve();
+      writeQueue = writeQueue.then(async () => {
+        if (!ch) return;
+        try {
+          const msg = new TextEncoder().encode(cmdTexto);
+          const data = new Uint8Array(msg.length + 1);
+          data[0] = 0x06;
+          data.set(msg, 1);
+          await ch.writeValueWithResponse(data);
+          if (pausaMs > 0) await esperar(pausaMs);
+        } catch (err) {
+          console.log(err);
+        }
+      });
+      return writeQueue;
+    }
+
+    function setAngleDeg(deg, sendToHub = true) {
+      currentDeg = Math.max(ANG_MIN, Math.min(ANG_MAX, parseInt(deg, 10)));
+      if (sendToHub) {
+        lastSentLabel = `${currentDeg}°`;
+      }
+      actualizarPantallas();
+      if (sendToHub && ch) {
+        return enviarBytes2("U", currentDeg, 35);
+      }
+      return Promise.resolve();
+    }
+
+    function enviarVelocidadManual(vel) {
+      manualSpeed = parseInt(vel, 10);
+      actualizarPantallas();
+      const byteVal = Math.max(1, Math.min(255, Math.round(manualSpeed / 4)));
+      if (ch) return enviarBytes2("W", byteVal, 30);
+      return Promise.resolve();
+    }
+
+    function enviarVelocidadAuto(vel) {
+      autoSpeed = parseInt(vel, 10);
+      actualizarPantallas();
+      const byteVal = Math.max(1, Math.min(255, Math.round(autoSpeed / 2.4)));
+      if (ch) return enviarBytes2("E", byteVal, 30);
+      return Promise.resolve();
+    }
+
+    async function conectarConReintentos(dev) {
+      for (let i = 1; i <= 5; i++) {
+        if (manualDisconnect) throw new Error("Conexión cancelada");
+        try {
+          setBadge("retrying", `Conectando... (intento ${i}/5)`);
+          if (dev.gatt.connected) dev.gatt.disconnect();
+          await esperar(500);
+          const server = await dev.gatt.connect();
+          await esperar(1000);
+          const svc = await server.getPrimaryService(SERVICE_UUID);
+          return await svc.getCharacteristic(CHAR_UUID);
+        } catch (e) {
+          await esperar(1500);
+        }
+      }
+      throw new Error("No se pudo conectar tras 5 intentos");
+    }
+
+    connectBtn.onclick = async () => {
+      try {
+        manualDisconnect = false;
+        clearInterval(holdTimer);
+        corriendo = null;
+
+        const dev = await navigator.bluetooth.requestDevice({
+          filters: [{ services: [SERVICE_UUID] }]
+        });
+
+        dev.addEventListener("gattserverdisconnected", () => {
+          clearInterval(holdTimer);
+          ch = null;
+          setConnectedState(false);
+        });
+
+        ch = await conectarConReintentos(dev);
+
+        ch.addEventListener("characteristicvaluechanged", e => {
+          const d = new Uint8Array(e.target.value.buffer);
+          if (d[0] === 0x00 && d.length >= 5) {
+            const flags = d[1] | (d[2] << 8) | (d[3] << 16) | (d[4] << 24);
+            corriendo = !!(flags & (1 << 6));
+            if (corriendo) {
+              setBadge("connected", "Corriendo programa");
+            }
+          }
+          if (d[0] === 0x01 || d[0] === 0x06) {
+            procesarLecturaSerial(new TextDecoder().decode(d.slice(1)));
+          }
+        });
+
+        await ch.startNotifications();
+        await esperar(1000);
+
+        if (corriendo === false) {
+          setBadge("retrying", "Iniciando programa...");
+          await ch.writeValueWithResponse(new Uint8Array([0x01]));
+          await esperar(2200);
+        }
+
+        connectBtn.disabled = true;
+        disconnectBtn.disabled = false;
+        setBadge("connected", "Corriendo programa");
+        actualizarPantallas();
+
+        await esperar(250);
+        await setAngleDeg(currentDeg, true);
+        await enviarVelocidadManual(manualSpeed);
+        await enviarVelocidadAuto(autoSpeed);
+
+        holdTimer = setInterval(async () => {
+          if (!ch || !holdCmd) return;
+          await enviarTexto(holdCmd + "0", 10);
+        }, 120);
+
+      } catch (err) {
+        setBadge("disconnected", "Error: " + err.message);
+        connectBtn.disabled = false;
+        disconnectBtn.disabled = true;
+      }
+    };
+
+    disconnectBtn.onclick = () => {
+      manualDisconnect = true;
+      clearInterval(holdTimer);
+      if (ch && ch.service && ch.service.device && ch.service.device.gatt.connected) {
+        ch.service.device.gatt.disconnect();
+      }
+      ch = null;
+      setConnectedState(false);
+    };
+
+    document.querySelectorAll("[data-hold]").forEach(btn => {
+      const c = btn.dataset.hold;
+      const startHold = ev => {
+        ev.preventDefault();
+        holdCmd = c;
+        enviarTexto(c + "0", 10);
+      };
+      const endHold = () => {
+        if (holdCmd === c) {
+          holdCmd = null;
+          enviarTexto("O0", 20);
+        }
+      };
+      btn.addEventListener("pointerdown", startHold);
+      btn.addEventListener("pointerup", endHold);
+      btn.addEventListener("pointerleave", endHold);
+      btn.addEventListener("pointercancel", endHold);
+    });
+
+    document.getElementById("stopBtn").onclick = () => {
+      holdCmd = null;
+      enviarTexto("O0", 40);
+    };
+
+    document.getElementById("followLineBtn").onclick = () => enviarTexto("M0", 80);
+    document.getElementById("aimBtn").onclick = () => enviarTexto("A0", 80);
+    document.getElementById("autoShootBtn").onclick = () => enviarTexto("K0", 80);
+    document.getElementById("shootBtn").onclick = () => enviarTexto("S0", 80);
+
+    speedSlider.addEventListener("input", () => {
+      currentSpeed = parseInt(speedSlider.value, 10);
+      actualizarPantallas();
+      const code = currentSpeed === 1000 ? "a" : String(Math.floor(currentSpeed / 100));
+      enviarTexto("V" + code, 40);
+    });
+
+    manualSpeedSlider.addEventListener("input", () => enviarVelocidadManual(manualSpeedSlider.value));
+    autoSpeedSlider.addEventListener("input", () => enviarVelocidadAuto(autoSpeedSlider.value));
+
+    document.getElementById("angleMinus").onclick = () => setAngleDeg(currentDeg - 1, true);
+    document.getElementById("anglePlus").onclick = () => setAngleDeg(currentDeg + 1, true);
+    angleSlider.addEventListener("input", () => setAngleDeg(angleSlider.value, true));
+
+    document.querySelectorAll("[data-deg]").forEach(btn => {
+      btn.onclick = () => setAngleDeg(parseInt(btn.dataset.deg, 10), true);
+    });
+
+    actualizarPantallas();
+  </script>
+</body>
+</html>
